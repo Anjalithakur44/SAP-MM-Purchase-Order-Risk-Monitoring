@@ -41,12 +41,10 @@ modified without changing the report.
 
 SAP MM Tables
 (EKKO, EKPO, LFA1, MARA)
-        |
-        v
+      -
 Enhancement Logic
 (Function Module)
-        |
-        v
+      -
 Analytical Report
 (SALV ALV)
 
