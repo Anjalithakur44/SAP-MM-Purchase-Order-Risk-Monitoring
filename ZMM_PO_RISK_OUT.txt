@@ -1,0 +1,6 @@
+EBELN        - Purchase Order Number
+LIFNR        - Vendor
+MATNR        - Material
+NETWR        - Net Value
+RISK_LEVEL   - LOW / MEDIUM / HIGH
+RISK_REASON  - Business explanation

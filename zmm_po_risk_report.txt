@@ -1,0 +1,101 @@
+*&---------------------------------------------------------------------*
+*& Report ZMM_PO_RISK_REPORT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zmm_po_risk_report.
+
+TABLES: ekko,
+        ekpo.
+
+SELECT-OPTIONS:
+  s_bedat FOR ekko-bedat,
+  s_lifnr FOR ekko-lifnr,
+  s_werks FOR ekpo-werks.
+
+DATA: lt_output TYPE TABLE OF zmm_po_risk_out,
+      ls_output TYPE zmm_po_risk_out.
+
+DATA: lo_alv     TYPE REF TO cl_salv_table,
+      lo_columns TYPE REF TO cl_salv_columns_table,
+      lo_column  TYPE REF TO cl_salv_column_table,
+      lx_salv    TYPE REF TO cx_salv_msg.
+
+SELECT
+   ekko~ebeln
+   ekpo~ebelp
+   ekko~lifnr
+   lfa1~name1    AS vendor_name
+   ekpo~matnr
+   mara~mtart
+   ekpo~menge
+   ekpo~netwr
+   INTO CORRESPONDING FIELDS OF TABLE lt_output
+   FROM ekko
+   INNER JOIN ekpo ON ekko~ebeln = ekpo~ebeln
+   INNER JOIN lfa1 ON ekko~lifnr = lfa1~lifnr
+   INNER JOIN mara ON ekpo~matnr = mara~matnr
+   WHERE ekko~bedat IN s_bedat
+     AND ekko~lifnr IN s_lifnr
+     AND ekpo~werks IN s_werks.
+
+LOOP AT lt_output INTO ls_output.
+  CALL FUNCTION 'Z_MM_PO_RISK_EVALUATE'
+    EXPORTING
+      is_po_data     = ls_output
+    IMPORTING
+      ev_risk_level  = ls_output-risk_level
+      ev_risk_reason = ls_output-risk_reason.
+
+  MODIFY lt_output FROM ls_output.
+
+ENDLOOP.
+
+IF lt_output IS INITIAL.
+  MESSAGE 'No data found for selection' TYPE 'I'.
+  RETURN.
+ENDIF.
+
+TRY.
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_alv
+      CHANGING
+        t_table      = lt_output ).
+
+    lo_columns = lo_alv->get_columns( ).
+    lo_columns->set_optimize( abap_true ).
+
+    lo_column ?= lo_columns->get_column( 'EBELN' ).
+    lo_column->set_short_text( 'PO' ).
+    lo_column->set_medium_text( 'PO Number' ).
+    lo_column->set_long_text( 'Purchase Order Number' ).
+
+    lo_column ?= lo_columns->get_column( 'LIFNR' ).
+    lo_column->set_medium_text( 'Vendor' ).
+
+    lo_column ?= lo_columns->get_column( 'VENDOR_NAME' ).
+    lo_column->set_medium_text( 'Vendor Name' ).
+
+    lo_column ?= lo_columns->get_column( 'MATNR' ).
+    lo_column->set_medium_text( 'Material' ).
+
+    lo_column ?= lo_columns->get_column( 'MENGE' ).
+    lo_column->set_medium_text( 'Quantity' ).
+
+    lo_column ?= lo_columns->get_column( 'NETWR' ).
+    lo_column->set_medium_text( 'Net Value' ).
+
+    lo_column ?= lo_columns->get_column( 'RISK_LEVEL' ).
+    lo_column->set_medium_text( 'Risk Level' ).
+
+    lo_column ?= lo_columns->get_column( 'RISK_REASON' ).
+    lo_column->set_medium_text( 'Risk Reason' ).
+
+    lo_alv->get_functions( )->set_all( abap_true ).
+
+    lo_alv->display( ).
+
+  CATCH cx_salv_msg INTO lx_salv.
+    MESSAGE lx_salv->get_text( ) TYPE 'E'.
+ENDTRY.

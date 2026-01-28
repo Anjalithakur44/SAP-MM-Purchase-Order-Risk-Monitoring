@@ -1,0 +1,28 @@
+FUNCTION Z_MM_PO_RISK_EVALUATE.
+*"----------------------------------------------------------------------
+*"*"Local Interface:
+*"  IMPORTING
+*"     VALUE(IS_PO_DATA) TYPE  ZMM_PO_RISK_OUT
+*"  EXPORTING
+*"     REFERENCE(EV_RISK_LEVEL) TYPE  CHAR10
+*"     REFERENCE(EV_RISK_REASON) TYPE  CHAR50
+*"----------------------------------------------------------------------
+DATA: lv_netwr TYPE netwr,
+      lv_mtart TYPE mtart.
+
+lv_netwr = is_po_data-netwr.
+lv_mtart = is_po_data-mtart.
+
+IF lv_netwr > 100000.
+  ev_risk_level  = 'HIGH'.
+  ev_risk_reason = 'High PO value'.
+ELSEIF lv_mtart = 'ROH'.
+  ev_risk_level  = 'MEDIUM'.
+  ev_risk_reason = 'Critical raw material'.
+ELSE.
+  ev_risk_level  = 'LOW'.
+  ev_risk_reason = 'Normal procurement'.
+ENDIF.
+
+
+ENDFUNCTION.
